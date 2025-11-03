@@ -57,10 +57,10 @@ function LoginPage() {
     },
   });
 
-  console.log({ session, status });
+  // console.log({ session, status });
 
   useEffect(() => {
-    console.log('RUNNN');
+    
     
     if (status === "authenticated" && session?.user) {
       router.push("/dashboard");

@@ -1,41 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { use, useEffect, useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Button } from "@/components/ui/button"
 import { Download, Volume2, Share2, Edit, ChevronLeft, ChevronRight } from "lucide-react"
+import { useParams } from "next/navigation"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
-// Sample story data
-const storyPages = [
-  {
-    id: 1,
-    text: "Once upon a time, deep in the Whispering Woods, lived a baby bear named Barnaby. Barnaby was a very cuddly bear, with soft brown fur, big curious eyes, and paws that were perfect for patting dandelions.\n\nAll the other little bears in the woods were learning how to roar. Big Brother Bear could give a growl that made the leaves shiver. Sister Bear could let out a *Rrrraaar!* that echoed through the trees. Even Tiny Timmy Bear could manage a squeaky *Roooo!*\n\nBut not Barnaby.",
-    image: "/cute-orange-fox-in-magical-forest-children-book-il.jpg",
-  },
-  {
-    id: 2,
-    text: "Barnaby would try his very hardest. He’d puff out his chest. He’d wrinkle his nose. He’d open his mouth wide and push with all his might. And what would come out? A tiny, soft, *mew-mew!* like a kitten.\n\n\"Oh dear, Barnaby,\" chuckled his Mama Bear, \"You sound like a little kitten, not a mighty bear!\"\n\nBarnaby felt a little bit sad. He wanted to roar! He wanted to be a proper bear.",
-    image: "/glowing-golden-path-in-enchanted-forest-children-b.jpg",
-  },
-  {
-    id: 3,
-    text: "One sunny morning, Barnaby wandered away from his den, feeling a bit glum. He practiced his *mew-mew!* in front of a shiny puddle. It still wasn\'t a roar.\n\nHe walked past a patch of very tall wildflowers. Suddenly, he heard a tiny whimpering sound. *Whimper, whim-whimper!*\n\nBarnaby pushed aside a big, purple flower, and there, tangled in a sticky spiderweb, was a very small, very fluffy bumblebee! Its little legs were stuck, and it couldn\'t fly.",
-    image: "/wise-owl-talking-to-fox-in-forest-children-book-il.jpg",
-  },
-  {
-    id: 4,
-    text: "\"Oh no!\" thought Barnaby. He knew bumblebees were important for making the flowers grow. Carefully, very carefully, he bent down. He tried to untangle the bee with one big paw, but his claws were too clumsy.\n\nHe tried with his nose, nudging gently. No, that didn\'t work either.\n\nThe bumblebee looked up at Barnaby with its big, black eyes, still whimpering. Barnaby knew he had to help! He opened his mouth to try and *mew-mew* for help, but something different happened.\n\nHe blew a soft, gentle breath, a \"Huuuffff!\" right onto the spiderweb. The warm air made the sticky threads wobble. Then, he tried again, a slightly stronger \"Huuuuufff!\"\n\nAnd with that second gentle puff of air, the spiderweb came loose! The little bumblebee buzzed free, shaking its wings. It flew a happy little circle around Barnaby\'s nose. *Bzzzz-bzzzzz!* it hummed, as if saying, \"Thank you, thank you!\"",
-    image: "/fox-crossing-stream-with-butterflies-children-book.jpg",
-  },
-  {
-    id: 5,
-    text: "Barnaby watched the bee fly away, a big smile spreading across his face. And then, without even thinking, he stood up tall, puffed out his chest, and let out a sound he\'d never made before.\n\nIt wasn\'t a soft *mew-mew!*\nIt wasn\'t a squeaky *Roooo!*\n\nIt was a deep, rumbling, proud **\"RROOOOAARRR!\"**\n\nThe leaves on the trees shivered just a little bit. A squirrel halfway up an oak tree paused, surprised. Barnaby looked around, his eyes wide. He had roared! A real bear roar!\n\nMama Bear came padding through the trees. \"Barnaby, was that you?\" she asked, her eyes twinkling.\n\nBarnaby nodded, beaming. \"I roared, Mama! I roared!\"\n\nFrom that day on, Barnaby could roar whenever he needed to. But he also remembered the little bumblebee and the gentle breath that helped it. He learned that being a strong bear wasn\'t just about making a loud noise, but also about having a kind heart.\n\nAnd sometimes, a gentle puff of air was just as powerful as the biggest roar.\n\nThe End.",
-    image: "/magical-crystal-in-forest-clearing-children-book-i.jpg",
-  },
+const placeholderImages = [
+  "/cute-orange-fox-in-magical-forest-children-book-il.jpg",
+  "/glowing-golden-path-in-enchanted-forest-children-b.jpg",
+  "/wise-owl-talking-to-fox-in-forest-children-book-il.jpg",
+  "/fox-crossing-stream-with-butterflies-children-book.jpg",
+  "/magical-crystal-in-forest-clearing-children-book-i.jpg",
+  "/children-reading-colorful-illustrated-storybook-to.jpg",
+  "/open-storybook-with-colorful-illustrated-pages-sho.jpg",
 ]
 
 export default function StoryPreviewPage() {
+ const params = useParams()
+  const storyId = params.id as Id<"stories">
+  const story = useQuery(api.story.getStoryById, { id: storyId })
+
   const [currentPage, setCurrentPage] = useState(0)
+  const [storyPages, setStoryPages] = useState<{ id: number; text: string; image: string }[]>([])
+  const [storyTitle, setStoryTitle] = useState("Loading Story...")
+
+  useEffect(() => {
+    if (story) {
+      setStoryTitle(story.title || "Untitled Story")
+      const contentPages = story.content.split('\n\n').map((paragraph, index) => ({
+        id: index + 1,
+        text: paragraph.trim(),
+        image: placeholderImages[index % placeholderImages.length],
+      }))
+      setStoryPages(contentPages)
+    }
+  }, [story])
+
+  if (!story) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <DashboardSidebar />
+        <main className="flex flex-1 items-center justify-center">
+          <p>Loading story...</p>
+        </main>
+      </div>
+    )
+  }
 
   const nextPage = () => {
     if (currentPage < storyPages.length - 1) {
@@ -75,7 +89,7 @@ export default function StoryPreviewPage() {
         {/* Toolbar */}
         <div className="flex items-center justify-between border-b border-border bg-background px-6 py-4">
           <div>
-            <h1 className="font-display text-xl font-semibold">The Little Bear Who Couldn't Roar</h1>
+            <h1 className="font-display text-xl font-semibold">{storyTitle}</h1>
             <p className="text-sm text-muted-foreground">
               Page {currentPage + 1} of {storyPages.length}
             </p>
@@ -121,7 +135,7 @@ export default function StoryPreviewPage() {
                 {/* Full background image */}
                 <div className="absolute inset-0">
                   <img
-                    src={page.image || "/placeholder.svg"}
+                    src={page?.image || "/placeholder.svg"}
                     alt={`Story illustration page ${currentPage + 1}`}
                     className="h-full w-full object-cover"
                   />
@@ -144,7 +158,7 @@ export default function StoryPreviewPage() {
                       borderRadius: "30px 30px 30px 8px",
                     }}
                   >
-                    <p className="font-serif text-sm leading-relaxed text-foreground sm:text-base">{page.text}</p>
+                    <p className="font-serif text-sm leading-relaxed text-foreground sm:text-base">{page?.text}</p>
                   </div>
                 </div>
               </div>
