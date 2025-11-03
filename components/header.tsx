@@ -3,8 +3,11 @@
 import Link from "next/link"
 import { Logo } from "./logo"
 import { Button } from "./ui/button"
+import { useSession } from "next-auth/react"
+import UserButton from "./userButton"
 
 export function Header() {
+  const session = useSession()
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -34,9 +37,13 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" className="hidden md:inline-flex">
-            <Link href="/login">Sign In</Link>
-          </Button>
+          {session.status === "authenticated" ? (
+            <UserButton />
+          ) : (
+            <Button asChild variant="ghost" className="hidden md:inline-flex">
+              <Link href="/login">Sign In</Link>
+            </Button>
+          )}
           <Button asChild>
             <Link href="/create">Get Started</Link>
           </Button>
