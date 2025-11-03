@@ -4,10 +4,10 @@ import { getToken } from "next-auth/jwt";
 
 // Define protected routes and required roles
 const protectedRoutes = [
-  "/dashboard", // Protect root path
+  "/dashboard",
   "/create",
   "/story",
-  
+  "/settings", // Added /settings to protected routes for role-based access
 ];
 
 
@@ -20,25 +20,24 @@ const excludedRoutes = [
   "/_next",
   "/favicon.ico",
   "/rejected",
+  "/waiting-approval", // Exclude waiting-approval from middleware checks
+  "/client-dashboard", // Exclude client-dashboard from middleware checks
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // console.log("Middleware running for path:", pathname);
-
-  // Skip middleware for excluded routes
+  // Skip middleware for explicitly excluded routes
   if (excludedRoutes.some((route) => pathname.startsWith(route))) {
-    // console.log("Skipping middleware for excluded route:", pathname);
     return NextResponse.next();
   }
 
-  // Only check protected routes
+  // Only apply protection logic to defined protected routes
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     try {
       const cookieName =
         process.env.NODE_ENV === "production"
-          ? "__Secure-authjs.session-token" // <-- double underscore!
+          ? "__Secure-authjs.session-token"
           : "authjs.session-token";
 
       const token = await getToken({
@@ -46,79 +45,66 @@ export async function middleware(request: NextRequest) {
         secret: process.env.NEXTAUTH_SECRET!,
         cookieName,
       });
-      // console.log("Token found:", token ? "Yes" : "No");
 
-      // If no token, redirect to login
+      // If no token, redirect to login page
       if (!token) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         return NextResponse.redirect(url);
       }
 
-      // If token exists but no role, redirect to onboarding
+      // Handle user status and role-based redirections
+      const redirectUrl = request.nextUrl.clone();
+
       if (!token.role || token.role === "") {
-        // console.log("Token found but no role, redirecting to onboarding");
-        const url = request.nextUrl.clone();
-        url.pathname = "/onboarding";
-        return NextResponse.redirect(url);
+        // If token exists but no role, redirect to onboarding
+        redirectUrl.pathname = "/onboarding";
+        return NextResponse.redirect(redirectUrl);
       }
 
-      // Check user status
       if (token.status === "pending") {
-        // console.log("User status is pending, redirecting to waiting-approval");
-        const url = request.nextUrl.clone();
-        url.pathname = "/waiting-approval";
-        return NextResponse.redirect(url);
+        // User is pending approval
+        redirectUrl.pathname = "/waiting-approval";
+        return NextResponse.redirect(redirectUrl);
       }
 
       if (token.status === "reject") {
-        // console.log("User status is rejected, redirecting to rejected");
-        const url = request.nextUrl.clone();
-        url.pathname = "/rejected";
-        return NextResponse.redirect(url);
+        // User has been rejected
+        redirectUrl.pathname = "/rejected";
+        return NextResponse.redirect(redirectUrl);
       }
 
-      if (token.status !== "approved") {
-        // console.log("User status is not approved, redirecting to login");
-        const url = request.nextUrl.clone();
-        url.pathname = "/login";
-        return NextResponse.redirect(url);
-      }
+      // Any other non-approved status should redirect to login
+      // if (token.status !== "approved") {
+      //   redirectUrl.pathname = "/login";
+      //   return NextResponse.redirect(redirectUrl);
+      // }
 
-      // Optional: Check for specific roles for specific routes
+      // Specific role-based access for /settings
       if (pathname.startsWith("/settings") && token.role !== "admin" && token.role !== "accountant") {
-        // console.log(
-        //   "Non-admin user trying to access settings, redirecting to dashboard",
-        // );
-        const url = request.nextUrl.clone();
-        url.pathname = "/";
-        return NextResponse.redirect(url);
+        redirectUrl.pathname = "/"; // Redirect non-authorized users from settings
+        return NextResponse.redirect(redirectUrl);
       }
 
-      // Redirect clients away from admin routes to client dashboard
-      if (
-        protectedRoutes.some((route) => pathname.startsWith(route)) &&
-        token.role === "client"
-      ) {
-        // console.log(
-        //   "Client trying to access admin route, redirecting to client dashboard",
-        // );
-        const url = request.nextUrl.clone();
-        url.pathname = "/client-dashboard";
-        return NextResponse.redirect(url);
+      // Redirect 'client' role from general protected routes to their specific dashboard
+      if (token.role === "client") {
+        redirectUrl.pathname = "/client-dashboard";
+        return NextResponse.redirect(redirectUrl);
       }
 
-      // console.log("User authorized, allowing access to:", pathname);
+      // If all checks pass, allow access
+      return NextResponse.next();
+
     } catch (error) {
       console.error("Middleware error:", error);
-      // On error, redirect to login for safety
+      // On any middleware error, redirect to login for safety
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
     }
   }
 
-  // Allow request to proceed
+  // Allow request to proceed if not a protected route
   return NextResponse.next();
 }
 
