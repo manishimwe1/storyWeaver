@@ -74,12 +74,6 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      // Any other non-approved status should redirect to login
-      // if (token.status !== "approved") {
-      //   redirectUrl.pathname = "/login";
-      //   return NextResponse.redirect(redirectUrl);
-      // }
-
       // Specific role-based access for /settings
       if (pathname.startsWith("/settings") && token.role !== "admin" && token.role !== "accountant") {
         redirectUrl.pathname = "/"; // Redirect non-authorized users from settings

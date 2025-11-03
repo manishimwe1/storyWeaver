@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Loader2 } from "lucide-react"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 export default function CreateStoryPage() {
   const router = useRouter()
@@ -19,10 +21,14 @@ export default function CreateStoryPage() {
   const [title, setTitle] = useState("")
   const [ageGroup, setAgeGroup] = useState("")
   const [storyIdea, setStoryIdea] = useState("")
+  const generateStory = useMutation(api.story.kickoffWorkflow)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsGenerating(true)
+    const storyPrompt = `Title: ${title}\nAge Group: ${ageGroup}\nStory Idea: ${storyIdea}`
+    await generateStory({ storyPrompt })
+
 
     // Simulate AI generation
     setTimeout(() => {
