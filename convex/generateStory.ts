@@ -8,14 +8,35 @@ export const generateStory = internalAction({
     storyPrompt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
-      prompt: args.storyPrompt || "generate a kid story",
-    });
-    // await ctx.runMutation(
-    //   internal.stories.createStory,
-    //   { userId: args.userId, storyPrompt: args.storyPrompt, story: text },
-    // );
+    let attempts = 0;
+    let text = "";
+    const maxRetries = 2;
+
+    while (attempts < maxRetries) {
+      try {
+        const response = await generateText({
+          model: google("gemini-2.5-flash"),
+          prompt: args.storyPrompt!,
+          maxOutputTokens: 4000,
+        });
+
+        text = response.text?.trim();
+        if (text) break; // success
+      } catch (error) {
+        console.error(
+          `Story generation failed (attempt ${attempts + 1}):`,
+          error
+        );
+        if (attempts + 1 === maxRetries)
+          throw new Error("Failed to generate story after multiple attempts");
+      }
+      attempts++;
+    }
+
+    console.log(
+      "✅ Story successfully generated:",
+      text?.slice(0, 200) + "..."
+    );
     return text;
   },
 });

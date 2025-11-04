@@ -119,7 +119,7 @@ export default function MyStoriesPage() {
                     </div>
                   </div>
                   <CardContent className="p-4">
-                    <Link href="/story/preview">
+                    <Link href={`/story/preview/${story._id}`}>
                       <h3 className="mb-1 font-display font-semibold hover:text-primary">
                         {story.title}
                       </h3>
@@ -128,14 +128,9 @@ export default function MyStoriesPage() {
                       Created {"Manzi kyle"}
                     </p>
                     <div className="flex items-center gap-2">
-                      {story.storyAge.map((age) => (
-                        <span
-                          key={age}
-                          className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
-                        >
-                          {age}
-                        </span>
-                      ))}
+                      <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        {story.ageGroup.min}-{story.ageGroup.max}
+                      </span>
                       <span className="text-xs text-muted-foreground">
                         {1} pages
                       </span>

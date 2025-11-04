@@ -12,6 +12,7 @@ import type * as generateStory from "../generateStory.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as story from "../story.js";
+import type * as storyQueries from "../storyQueries.js";
 import type * as users from "../users.js";
 import type * as workflow from "../workflow.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   index: typeof index;
   story: typeof story;
+  storyQueries: typeof storyQueries;
   users: typeof users;
   workflow: typeof workflow;
 }>;

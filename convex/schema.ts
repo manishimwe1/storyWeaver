@@ -1,14 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 export default defineSchema({
-  stories: defineTable({
-    storyPrompt: v.string(),
-    title: v.string(),
-    content: v.string(),
-    storyAge: v.array(v.number()),
-  })
-    .index("by_title", ["title"]),
-
   // 👤 Users
 
   user: defineTable({
@@ -22,61 +14,40 @@ export default defineSchema({
     resetTokenExpiry: v.optional(v.number()),
   }).index("by_email", ["email"]),
 
-  //   products: defineTable({
-  //     name: v.string(),
-  //     description: v.string(),
-  //     brand: v.string(),
-  //     category: v.string(),
-  //     price: v.number(),
-  //     originalPrice: v.optional(v.number()),
-  //     stock: v.number(),
-  //     serialNumber: v.string(),
-  //     images: v.array(v.string()),
-  //     warranty: v.optional(v.number()),
-  //     status: v.union(
-  //       v.literal("active"),
-  //       v.literal("inactive"),
-  //       v.literal("draft")
-  //     ),
-  //     updatedAt: v.string(),
-  //     createdBy: v.id("user"),
-  //     condition: v.optional(
-  //       v.union(
-  //         v.literal("Like New"),
-  //         v.literal("New"),
-  //         v.literal("Good"),
-  //         v.literal("Used")
-  //       )
-  //     ),
-  //     badge: v.optional(
-  //       v.union(
-  //         v.literal("NEW"),
-  //         v.literal("HOT"),
-  //         v.literal("SALE"),
-  //         v.literal("Deals")
-  //       )
-  //     ),
-  //     views: v.optional(v.number()),
-  //     likes: v.optional(v.number()),
-  //     rating: v.optional(v.number()),
-  //   })
-  //     .index("by_category", ["category"])
-  //     .index("by_status", ["status"]),
+  stories: defineTable({
+    title: v.string(),
+    storyPrompt: v.string(),
+    ageGroup: v.object({
+      min: v.number(),
+      max: v.number(),
+    }),
+    coreConcept: v.optional(v.string()),
+    status: v.union(
+      v.literal("generating"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    updatedAt: v.number(),
+  })
+    .index("by_update_time", ["updatedAt"])
+    .index("by_status", ["status"]),
 
-  //   facture: defineTable({
-  //     clientName: v.string(),
-  //     factureNumber: v.optional(v.number()),
-  //     items: v.array(
-  //       v.object({
-  //         description: v.string(),
-  //         quantity: v.number(),
-  //         unitPrice: v.number(),
-  //         totalPrice: v.number(),
-  //       })
-  //     ),
-  //     status: v.union(v.literal("draft"), v.literal("sent"), v.literal("paid")),
-  //     totalAmount: v.number(),
-  //     date: v.number(),
-  //     phone: v.optional(v.number()),
-  //   }),
+  // Story characters
+  characters: defineTable({
+    storyId: v.id("stories"),
+    name: v.string(),
+    description: v.string(),
+    role: v.optional(v.string()), // e.g., "protagonist", "sidekick"
+    order: v.number(), // For sorting
+  }).index("by_story", ["storyId", "order"]),
+
+  // Story pages with text and illustration descriptions
+  pages: defineTable({
+    storyId: v.id("stories"),
+    pageNumber: v.number(),
+    text: v.string(),
+    illustrationPrompt: v.string(),
+    illustrationUrl: v.optional(v.string()), // For when you generate images later
+    interactiveQuestion: v.optional(v.string()), // Questions like "What colors do you see?"
+  }).index("by_story", ["storyId", "pageNumber"]),
 });

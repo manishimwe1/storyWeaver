@@ -1,41 +1,85 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, Loader2 } from "lucide-react"
-import { useMutation } from "convex/react"
-import { api } from "@/convex/_generated/api"
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
+import { Loader2, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function CreateStoryPage() {
-  const router = useRouter()
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [title, setTitle] = useState("")
-  const [ageGroup, setAgeGroup] = useState("")
-  const [storyIdea, setStoryIdea] = useState("")
-  const generateStory = useMutation(api.story.kickoffWorkflow)
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [title, setTitle] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
+  const [storyIdea, setStoryIdea] = useState("");
+  const generateStory = useMutation(api.story.kickoffWorkflow);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsGenerating(true)
-    const storyPrompt = `Title: ${title}\nAge Group: ${ageGroup}\nStory Idea: ${storyIdea}`
-    await generateStory({ storyPrompt })
+    e.preventDefault();
+    setIsGenerating(true);
+    const storyPrompt = `
+You are a professional children's storybook creator.
+Generate a short, imaginative story for kids, following this exact structured format.
+Always include every section shown below with the exact same labels.
+Make sure the output includes both story text and illustration notes.
 
+---
 
-    // Simulate AI generation
-    setTimeout(() => {
-      setIsGenerating(false)
-      router.push("/story/preview")
-    }, 3000)
-  }
+**Book Title:** ${title}
+**Age Group:** ${ageGroup}
+**Story Idea:** ${storyIdea}
+
+**Characters:**
+- [List main and secondary characters with short descriptions]
+
+**Core Concept:**
+[1–2 sentence summary of the story’s theme or lesson]
+
+**Story Arc (Page by Page):**
+For each page, follow this format:
+**Page X-Y: [Scene Title]**
+- **Illustration:** Describe what the image on this page should look like.
+- **Text:** Write 2–4 short, rhythmic, age-appropriate sentences.
+- *(Optional engagement: Add a small interactive question for the reader.)*
+
+Continue until the story ends (around 10–12 pages total).
+
+**Key Elements:**
+- Repetition and rhythm (e.g., “very, very big,” “round and round”)
+- Simple words, gentle tone, and sensory details (sight, touch, sound)
+- Positive emotions and kindness
+- A happy, comforting ending
+`;
+    try {
+      await generateStory({ storyPrompt });
+      setIsGenerating(false);
+      router.push("/story/preview");
+    } catch (error) {
+      console.error("Error generating story:", error);
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -44,9 +88,12 @@ export default function CreateStoryPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="container mx-auto max-w-4xl px-4 py-8">
           <div className="mb-8">
-            <h1 className="mb-2 font-display text-3xl font-bold tracking-tight">Create a New Story</h1>
+            <h1 className="mb-2 font-display text-3xl font-bold tracking-tight">
+              Create a New Story
+            </h1>
             <p className="text-muted-foreground">
-              Share your story idea and let AI bring it to life with beautiful illustrations
+              Share your story idea and let AI bring it to life with beautiful
+              illustrations
             </p>
           </div>
 
@@ -56,7 +103,9 @@ export default function CreateStoryPage() {
                 <Sparkles className="h-5 w-5 text-primary" />
                 Story Details
               </CardTitle>
-              <CardDescription>Tell us about the story you want to create</CardDescription>
+              <CardDescription>
+                Tell us about the story you want to create
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -74,15 +123,25 @@ export default function CreateStoryPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="age-group">Target Age Group</Label>
-                  <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isGenerating}>
+                  <Select
+                    value={ageGroup}
+                    onValueChange={setAgeGroup}
+                    disabled={isGenerating}
+                  >
                     <SelectTrigger id="age-group">
                       <SelectValue placeholder="Select age group" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="3-5">3-5 years (Preschool)</SelectItem>
-                      <SelectItem value="6-8">6-8 years (Early Elementary)</SelectItem>
-                      <SelectItem value="9-12">9-12 years (Middle Elementary)</SelectItem>
-                      <SelectItem value="13+">13+ years (Young Adult)</SelectItem>
+                      <SelectItem value="6-8">
+                        6-8 years (Early Elementary)
+                      </SelectItem>
+                      <SelectItem value="9-12">
+                        9-12 years (Middle Elementary)
+                      </SelectItem>
+                      <SelectItem value="13+">
+                        13+ years (Young Adult)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -99,11 +158,15 @@ export default function CreateStoryPage() {
                     rows={8}
                     className="resize-none"
                   />
-                  <p className="text-sm text-muted-foreground">{storyIdea.length} / 1000 characters</p>
+                  <p className="text-sm text-muted-foreground">
+                    {storyIdea.length} / 1000 characters
+                  </p>
                 </div>
 
                 <div className="rounded-lg border border-border bg-muted/50 p-4">
-                  <h3 className="mb-2 font-display text-sm font-semibold">Tips for great stories:</h3>
+                  <h3 className="mb-2 font-display text-sm font-semibold">
+                    Tips for great stories:
+                  </h3>
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     <li>• Include specific character names and descriptions</li>
                     <li>• Describe the setting and atmosphere</li>
@@ -142,14 +205,20 @@ export default function CreateStoryPage() {
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-display font-semibold">Creating your story...</h3>
+                    <h3 className="mb-1 font-display font-semibold">
+                      Creating your story...
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Our AI is crafting your narrative and generating beautiful illustrations. This may take a minute.
+                      Our AI is crafting your narrative and generating beautiful
+                      illustrations. This may take a minute.
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
-                  <div className="h-full animate-pulse bg-primary" style={{ width: "60%" }} />
+                  <div
+                    className="h-full animate-pulse bg-primary"
+                    style={{ width: "60%" }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -157,5 +226,5 @@ export default function CreateStoryPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
