@@ -106,6 +106,21 @@ export const addPages = internalMutation({
   },
 });
 
+// Update page illustration URL and storage ID
+export const updatePageIllustration = internalMutation({
+  args: {
+    pageId: v.id("pages"),
+    illustrationUrl: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.pageId, {
+      illustrationUrl: args.illustrationUrl,
+      storageId: args.storageId,
+    });
+  },
+});
+
 // Update story status when complete
 export const updateStoryStatus = internalMutation({
   args: {
@@ -113,7 +128,8 @@ export const updateStoryStatus = internalMutation({
     status: v.union(
       v.literal("generating"),
       v.literal("completed"),
-      v.literal("failed")
+      v.literal("failed"),
+      v.literal("generating_illustrations")
     ),
   },
   handler: async (ctx, args) => {

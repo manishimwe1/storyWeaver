@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as generateIllustrations from "../generateIllustrations.js";
 import type * as generateStory from "../generateStory.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
@@ -31,6 +32,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  generateIllustrations: typeof generateIllustrations;
   generateStory: typeof generateStory;
   http: typeof http;
   index: typeof index;

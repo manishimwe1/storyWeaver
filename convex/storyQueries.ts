@@ -1,6 +1,6 @@
 // storyQueries.ts - Query functions to retrieve stories
 
-import { query } from "./_generated/server";
+import { internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // Get a complete story with all its components
@@ -93,5 +93,22 @@ export const getPage = query({
       .first();
 
     return page;
+  },
+});
+// Get all pages for a story by storyId
+export const getPagesByStoryId = internalQuery({
+  args: {
+    storyId: v.id("stories"),
+  },
+  handler: async (ctx, args) => {
+    const pages = await ctx.db
+      .query("pages")
+      .withIndex("by_story", (q) => q.eq("storyId", args.storyId))
+      .collect();
+
+    // Sort pages by page number
+    pages.sort((a, b) => a.pageNumber - b.pageNumber);
+
+    return pages;
   },
 });

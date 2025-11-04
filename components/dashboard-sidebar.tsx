@@ -18,7 +18,7 @@ export function DashboardSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border bg-muted/30">
+    <div className="hidden md:flex h-full w-64 flex-col border-r border-border bg-muted/30">
       <div className="flex h-16 items-center border-b border-border px-6">
         <Link href="/">
           <Logo />

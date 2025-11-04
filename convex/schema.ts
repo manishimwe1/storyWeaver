@@ -25,7 +25,8 @@ export default defineSchema({
     status: v.union(
       v.literal("generating"),
       v.literal("completed"),
-      v.literal("failed")
+      v.literal("failed"),
+      v.literal("generating_illustrations")
     ),
     updatedAt: v.number(),
   })
@@ -44,6 +45,7 @@ export default defineSchema({
   // Story pages with text and illustration descriptions
   pages: defineTable({
     storyId: v.id("stories"),
+    storageId: v.optional(v.id("_storage")),
     pageNumber: v.number(),
     text: v.string(),
     illustrationPrompt: v.string(),
