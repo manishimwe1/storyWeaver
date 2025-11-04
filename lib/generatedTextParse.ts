@@ -1,4 +1,4 @@
-// storyParser.ts - Parse AI-generated story into structured data
+// storyParser.ts - Lightweight and robust story text parser
 
 export interface ParsedStory {
   title: string;
@@ -18,110 +18,123 @@ export interface ParsedStory {
 }
 
 export function parseStoryText(storyText: string): ParsedStory {
-  // Extract title
-  const titleMatch = storyText.match(/\*\*Book Title:\*\*\s*(.+)/i);
-  const title = titleMatch ? titleMatch[1].trim() : "Untitled Story";
+  try {
+    // ✅ Sanitize and limit input (avoid memory blowups)
+    storyText = storyText.slice(0, 20000); // Keep max 20KB
 
-  // Extract age group
-  const ageMatch = storyText.match(/\*\*Age Group:\*\*\s*(.+)/i);
-  const ageGroup = ageMatch ? parseAgeGroup(ageMatch[1]) : { min: 3, max: 5 };
+    // ✅ Basic cleanup
+    const cleanText = storyText.replace(/\r/g, "").trim();
 
-  // Extract core concept
-  const conceptMatch = storyText.match(
-    /\*\*Core Concept:\*\*\s*(.+?)(?=\n\*\*|$)/
-  );
-  const coreConcept = conceptMatch ? conceptMatch[1].trim() : "";
+    // --- Extract metadata ---
+    const title = extractBetween(cleanText, "**Book Title:**", "\n") || "Untitled Story";
+    const ageGroupText = extractBetween(cleanText, "**Age Group:**", "\n") || "3-5";
+    const coreConcept = extractBetween(cleanText, "**Core Concept:**", "\n") || "";
 
-  // Extract characters
-  const characters = parseCharacters(storyText);
+    const ageGroup = parseAgeGroup(ageGroupText);
 
-  // Extract pages
-  const pages = parsePages(storyText);
+    // --- Extract characters ---
+    const charactersSection = extractBetween(cleanText, "**Characters:**", "**Page") || "";
+    const characters = parseCharactersSection(charactersSection);
 
-  console.log("Parsed characters:", storyText);
-  console.log("Parsed pages:", { pages, title, ageGroup, coreConcept });
+    // --- Extract pages ---
+    const pages = parsePagesSection(cleanText);
 
-  return {
-    title,
-    ageGroup,
-    coreConcept,
-    characters,
-    pages,
-  };
+    console.log("✅ Parsed story:", {
+      title,
+      ageGroup,
+      coreConcept,
+      characterCount: characters.length,
+      pageCount: pages.length,
+    });
+
+    return {
+      title,
+      ageGroup,
+      coreConcept,
+      characters,
+      pages,
+    };
+  } catch (error) {
+    console.error("❌ Story parsing failed:", error);
+    return {
+      title: "Error Story",
+      ageGroup: { min: 3, max: 5 },
+      coreConcept: "",
+      characters: [],
+      pages: [
+        {
+          pageNumber: 1,
+          text: "An error occurred while parsing this story.",
+          illustrationPrompt: "",
+        },
+      ],
+    };
+  }
+}
+
+// --- Helper functions ---
+
+function extractBetween(text: string, start: string, end?: string): string | null {
+  const startIndex = text.indexOf(start);
+  if (startIndex === -1) return null;
+  const fromStart = text.slice(startIndex + start.length);
+  if (!end) return fromStart.trim();
+  const endIndex = fromStart.indexOf(end);
+  return (endIndex === -1 ? fromStart : fromStart.slice(0, endIndex)).trim();
 }
 
 function parseAgeGroup(ageString: string): { min: number; max: number } {
-  const matches = ageString.match(/\d+/g);
-  if (!matches || matches.length === 0) {
-    return { min: 3, max: 5 };
-  }
-  const ages = matches.map(Number);
-  return {
-    min: Math.min(...ages),
-    max: Math.max(...ages),
-  };
+  const nums = ageString.match(/\d+/g)?.map(Number) || [3, 5];
+  return { min: Math.min(...nums), max: Math.max(...nums) };
 }
 
-function parseCharacters(storyText: string): ParsedStory["characters"] {
+function parseCharactersSection(section?: string): ParsedStory["characters"] {
+  if (!section) return [];
+  const lines = section.split("\n").map((l) => l.trim()).filter(Boolean);
+
   const characters: ParsedStory["characters"] = [];
+  for (const line of lines) {
+    if (!line.startsWith("*")) continue;
 
-  // Find the Characters section
-  const charactersSection = storyText.match(
-    /\*\*Characters:\*\*([\s\S]*?)(?=\n\*\*[A-Z]|\n\n\*\*|$)/i
-  );
-  if (!charactersSection) return characters;
+    const match = line.match(/\*\s*\*\*([^:*]+):\*\*\s*(.+)/);
+    if (!match) continue;
 
-  // Match each character entry (e.g., "* **Winnie the Witch:** Description")
-  const characterRegex =
-    /\*\s+\*\*([^:*]+):\*\*\s*(.+?)(?=\n\s*\*\s+\*\*|\n\n|$)/;
-  let match;
-
-  while ((match = characterRegex.exec(charactersSection[1])) !== null) {
-    const name = match[1].trim();
-    const description = match[2].trim();
-
-    // Determine role based on order or keywords
-    let role = "supporting";
-    if (characters.length === 0 || name.toLowerCase().includes("main")) {
-      role = "protagonist";
-    }
-
-    characters.push({ name, description, role });
+    const [_, name, description] = match;
+    const role = characters.length === 0 ? "protagonist" : "supporting";
+    characters.push({ name: name.trim(), description: description.trim(), role });
   }
 
   return characters;
 }
 
-function parsePages(storyText: string): ParsedStory["pages"] {
+function parsePagesSection(text: string): ParsedStory["pages"] {
   const pages: ParsedStory["pages"] = [];
 
-  // Match page sections like "**Page 1-2: Title**"
-  const pageRegex =
-    /\*\*Page\s+(\d+)(?:-(\d+))?:\s*([^*]+)\*\*\s*\n-\s+\*\*Illustration:\*\*\s*(.+?)\n-\s+\*\*Text:\*\*\s*([\s\S]+?)(?=\n\*\*Page|\n\n\*\*[A-Z]|$)/gi;
-  let match;
+  // Split by "**Page X" markers
+  const pageBlocks = text.split(/\*\*Page\s+/).slice(1);
 
-  while ((match = pageRegex.exec(storyText)) !== null) {
-    const startPage = parseInt(match[1]);
-    const endPage = match[2] ? parseInt(match[2]) : startPage;
-    const illustrationPrompt = match[4].trim();
-    const textContent = match[5].trim();
+  for (const block of pageBlocks) {
+    const headerMatch = block.match(/^(\d+(?:-\d+)?):\s*([^*]+)\*\*/);
+    if (!headerMatch) continue;
 
-    // Extract interactive question if present
-    const questionMatch = textContent.match(/\*\((.+?)\)\*/);
-    const interactiveQuestion = questionMatch
-      ? questionMatch[1].trim()
-      : undefined;
+    const [_, pageLabel, title] = headerMatch;
+    const startPage = parseInt(pageLabel.split("-")[0]);
+    const endPage = parseInt(pageLabel.split("-")[1] || startPage.toString());
 
-    // Remove the question from the main text
-    const cleanText = textContent.replace(/\*\([^)]+\)\*/g, "").trim();
+    const illustration = extractBetween(block, "**Illustration:**", "\n") || "";
+    const textBody = extractBetween(block, "**Text:**") || "";
 
-    // Handle page ranges (e.g., Page 1-2)
-    for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+    // Detect interactive question (* (Question)? *)
+    const questionMatch = textBody.match(/\*\((.+?)\)\*/);
+    const question = questionMatch ? questionMatch[1].trim() : undefined;
+    const cleanText = textBody.replace(/\*\(.+?\)\*/g, "").trim();
+
+    for (let p = startPage; p <= endPage; p++) {
       pages.push({
-        pageNumber: pageNum,
+        pageNumber: p,
         text: cleanText,
-        illustrationPrompt,
-        interactiveQuestion,
+        illustrationPrompt: illustration,
+        interactiveQuestion: question,
       });
     }
   }
